@@ -1,5 +1,5 @@
 import pydicom
-from os import listdir,walk,rename
+from os import listdir,walk,rename,makedirs
 from os.path import isfile, isdir, join
 
 def person_names_callback(dataset, data_element):
@@ -24,19 +24,32 @@ def curves_callback(dataset, data_element):
     if data_element.tag.group & 0xFF00 == 0x5000:
         del dataset[data_element.tag]
 
-def reNameDS(dirpath):
+def reNameDS(dirpath,serier_folder=True):
+    seriesMap={}
     for root, dns, fns in walk(dirpath):
         for fn in fns:
             if 'dcm' in fn:
               fp= join(root, fn )
+              new_fp=None
               try:
                 
                 ds=pydicom.dcmread(fp)
-                new_fn=(str(ds.Modality)+".0000"+str(ds.InstanceNumber))[-3:]+'.dcm'
+                
+                serNumMark='S'+("0000"+str(ds.SeriesNumber))[-3:]
+                
+                serSymble=ds.SeriesDescription
+                if serier_folder:
+                    makedirs(join(root, serSymble ), exist_ok=True)
+                    new_fn=serSymble+"/"+str(ds.Modality)+"."+serNumMark+"."+("0000"+str(ds.InstanceNumber))[-3:]+'.dcm'
+
+                else:
+                    new_fn=str(ds.Modality)+"."+serNumMark+"."+("0000"+str(ds.InstanceNumber))[-3:]+'.dcm'
+                    
                 new_fp=join(root, new_fn )
                 rename(fp,new_fp)
+                print(fp)
               except:
-                print("error"+fp)
+                print("error",fp,new_fp)
 
 import hashlib
 def md5(x,salt=None):
